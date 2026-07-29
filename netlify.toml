@@ -1,0 +1,5 @@
+# Netlify Configuration for SafeVoice Landing Page Static Export
+[build]
+  base = "safevoice-landing"
+  command = "npm run build"
+  publish = "safevoice-landing/out"

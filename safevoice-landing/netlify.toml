@@ -1,0 +1,4 @@
+[build]
+  base = "safevoice-landing"
+  command = "npm run build"
+  publish = "out"
