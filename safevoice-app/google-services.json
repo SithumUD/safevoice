@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "852404917015",
+    "project_id": "safevoice-38eda",
+    "storage_bucket": "safevoice-38eda.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:852404917015:android:ddc21516956106787f9d52",
+        "android_client_info": {
+          "package_name": "com.sithumudaya.safevoice"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAWf10dCAmoCjCNXaTTmdZO4GhzlD54494"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,86 @@
+spring:
+  application:
+    name: safevoice
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/safevoice_db}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:admin123}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 300000
+      connection-timeout: 20000
+      max-lifetime: 1200000
+
+  jpa:
+    hibernate:
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
+    show-sql: ${SPRING_JPA_SHOW_SQL:false}
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  flyway:
+    enabled: ${SPRING_FLYWAY_ENABLED:false}
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    repair-on-migrate: true
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+      enabled: true
+
+  data:
+    redis:
+      host: ${SPRING_REDIS_HOST:localhost}
+      port: ${SPRING_REDIS_PORT:6379}
+      password: ${SPRING_REDIS_PASSWORD:}
+
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME:safevoice-app}
+  api-key: ${CLOUDINARY_API_KEY:1234567890}
+  api-secret: ${CLOUDINARY_API_SECRET:secret}
+  upload-preset: ${CLOUDINARY_UPLOAD_PRESET:safevoice_signed_preset}
+
+logging:
+  level:
+    root: INFO
+    com.sithum.safevoice: DEBUG
+    org.springframework.web: INFO
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+
+app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8081,http://localhost:19006}
+    allowed-methods: GET,POST,PUT,DELETE,PATCH,OPTIONS
+    allowed-headers: "*"
+    exposed-headers: Authorization,Link,X-Total-Count
+    allow-credentials: true
+    max-age: 3600
+  jwt:
+    secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+    expiration-ms: ${JWT_EXPIRATION_MS:900000}
+    refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:604800000}
+  seed:
+    admin:
+      enabled: ${SEED_ADMIN_ENABLED:true}
+      email: ${SEED_ADMIN_EMAIL:admin@safevoice.com}
+      password: ${SEED_ADMIN_PASSWORD:AdminPassword123!}
+      nickname: ${SEED_ADMIN_NICKNAME:SuperAdmin}
+      bio: ${SEED_ADMIN_BIO:SafeVoice Platform Super Administrator}
+  email:
+    brevo:
+      api-key: ${BREVO_API_KEY:xkeysib-placeholder}
+      sender-email: ${BREVO_SENDER_EMAIL:noreply@safevoice.com}
+      sender-name: ${BREVO_SENDER_NAME:SafeVoice Security}
+  fcm:
+    credentials-file: ${GOOGLE_APPLICATION_CREDENTIALS:safevoice-38eda-firebase-adminsdk-fbsvc-6b444b6abe.json}
+
+
+

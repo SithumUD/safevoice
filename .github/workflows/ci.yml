@@ -1,0 +1,94 @@
+name: SafeVoice CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  backend-build-and-test:
+    name: Backend (Spring Boot 3 + Java 21)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build & Run Unit Tests
+        run: mvn test -Dspring.profiles.active=test
+        working-directory: safevoice-backend
+
+      - name: Package JAR
+        run: mvn package -DskipTests
+        working-directory: safevoice-backend
+
+  admin-build:
+    name: Admin Panel (Next.js 14)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: safevoice-admin/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
+        working-directory: safevoice-admin
+
+      - name: Build Next.js Admin
+        run: npm run build
+        working-directory: safevoice-admin
+        env:
+          NEXT_PUBLIC_API_BASE_URL: https://api.safevoice.lk/api/v1
+
+  landing-build:
+    name: Landing Page (Next.js 14)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: safevoice-landing/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
+        working-directory: safevoice-landing
+
+      - name: Build Next.js Landing
+        run: npm run build
+        working-directory: safevoice-landing
+
+  mobile-check:
+    name: Mobile App (React Native Expo)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: safevoice-app/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
+        working-directory: safevoice-app
+
+      - name: Type Check TypeScript
+        run: npx tsc --noEmit
+        working-directory: safevoice-app

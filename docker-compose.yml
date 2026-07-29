@@ -1,0 +1,121 @@
+services:
+  # ── 1. Redis Session & Tally Cache (Active for Local Dev) ──
+  redis:
+    image: redis:7-alpine
+    container_name: safevoice-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - safevoice-net
+
+  # ── 2. PostgreSQL Database (Production / Optional Profile) ──
+  postgres:
+    profiles: ["prod"]
+    image: postgres:15-alpine
+    container_name: safevoice-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-safevoice_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin123}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-safevoice_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - safevoice-net
+
+  # ── 3. Spring Boot Backend (Production / Optional Profile) ──
+  backend:
+    profiles: ["prod"]
+    build:
+      context: ./safevoice-backend
+      dockerfile: Dockerfile
+    container_name: safevoice-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-safevoice_db}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-admin123}
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_FLYWAY_ENABLED: "true"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-safevoice-app}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-1234567890}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-secret}
+      CLOUDINARY_UPLOAD_PRESET: ${CLOUDINARY_UPLOAD_PRESET:-safevoice_signed_preset}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-*}
+      JWT_SECRET: ${JWT_SECRET:-404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+      BREVO_API_KEY: ${BREVO_API_KEY:-xkeysib-placeholder}
+      BREVO_SENDER_EMAIL: ${BREVO_SENDER_EMAIL:-noreply@safevoice.com}
+      BREVO_SENDER_NAME: ${BREVO_SENDER_NAME:-SafeVoice Security}
+      GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS:-/app/safevoice-38eda-firebase-adminsdk-fbsvc-6b444b6abe.json}
+    volumes:
+      - ./safevoice-backend/safevoice-38eda-firebase-adminsdk-fbsvc-6b444b6abe.json:/app/safevoice-38eda-firebase-adminsdk-fbsvc-6b444b6abe.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - safevoice-net
+
+  # ── 4. Next.js Admin Dashboard (Production / Optional Profile) ──
+  admin:
+    profiles: ["prod"]
+    build:
+      context: ./safevoice-admin
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080/api/v1}
+    container_name: safevoice-admin
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+    depends_on:
+      - backend
+    networks:
+      - safevoice-net
+
+  # ── 5. Next.js Landing Page (Production / Optional Profile) ──
+  landing:
+    profiles: ["prod"]
+    build:
+      context: ./safevoice-landing
+      dockerfile: Dockerfile
+    container_name: safevoice-landing
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+    networks:
+      - safevoice-net
+
+networks:
+  safevoice-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
