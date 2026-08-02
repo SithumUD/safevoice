@@ -63,7 +63,7 @@ The platform is engineered as a production-ready monorepo combining a high-concu
 
 ## 🏗️ System Architecture & Infrastructure
 
-The SafeVoice ecosystem follows a decoupled microservices-ready architecture containerized with Docker and orchestrated on dedicated Linux Virtual Machines (VMs/VPS).
+The SafeVoice ecosystem follows a decoupled microservices-ready architecture. The backend is containerized with Docker and deployed on a **DigitalOcean Droplet**, while all web frontends are hosted on **Netlify's global CDN**.
 
 ```
                              ┌──────────────────────────────────────────────┐
@@ -73,30 +73,30 @@ The SafeVoice ecosystem follows a decoupled microservices-ready architecture con
                                     ▼                  ▼              ▼
                             ┌──────────────┐   ┌──────────────┐   ┌──────────────┐
                             │  Mobile App  │   │ Admin Portal │   │ Landing Site │
-                            │ (React Native│   │ (Next.js 16) │   │ (Next.js 16) │
+                            │ (React Native│   │  (Netlify)   │   │  (Netlify)   │
                             └───────┬──────┘   └──────┬───────┘   └──────┬───────┘
-                                    │                 │                  │
-                                    └─────────────────┼──────────────────┘
-                                                      │ HTTPS / STOMP WSS
-                                                      ▼
-                                       ┌───────────────────────────────┐
-                                       │   LINUX VM / VPS INSTANCE     │
-                                       │                               │
-                                       │  ┌─────────────────────────┐  │
-                                       │  │  Nginx Reverse Proxy    │  │
-                                       │  │  (Let's Encrypt SSL/TLS)│  │
-                                       │  └───────────┬─────────────┘  │
-                                       │              │ Port 8080      │
-                                       │  ┌───────────▼─────────────┐  │
-                                       │  │   Spring Boot Backend   │  │
-                                       │  │   (Java 21 Runtime)     │  │
-                                       │  └───────┬───────────┬─────┘  │
-                                       │          │           │        │
-                                       │  ┌───────▼────┐  ┌───▼─────┐  │
-                                       │  │ PostgreSQL │  │  Redis  │  │
-                                       │  │    15      │  │    7    │  │
-                                       │  └────────────┘  └─────────┘  │
-                                       └───────────────────────────────┘
+                                    │                  │              │
+                                    └──────────────────┼──────────────┘
+                                                       │ HTTPS / STOMP WSS
+                                                       ▼
+                                        ┌───────────────────────────────┐
+                                        │   DIGITALOCEAN DROPLET        │
+                                        │   (Ubuntu 24.04 LTS)          │
+                                        │  ┌─────────────────────────┐  │
+                                        │  │  Nginx Reverse Proxy    │  │
+                                        │  │  (Let's Encrypt SSL/TLS)│  │
+                                        │  └───────────┬─────────────┘  │
+                                        │              │ Port 8080      │
+                                        │  ┌───────────▼─────────────┐  │
+                                        │  │   Spring Boot Backend   │  │
+                                        │  │   (Java 21 Runtime)     │  │
+                                        │  └───────┬───────────┬─────┘  │
+                                        │          │           │        │
+                                        │  ┌───────▼────┐  ┌───▼─────┐  │
+                                        │  │ PostgreSQL │  │  Redis  │  │
+                                        │  │    15      │  │    7    │  │
+                                        │  └────────────┘  └─────────┘  │
+                                        └───────────────────────────────┘
 ```
 
 ---
@@ -111,7 +111,7 @@ The SafeVoice ecosystem follows a decoupled microservices-ready architecture con
 | **Admin & Web** | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4, Lucide React Icons |
 | **Cloud Services** | Firebase Admin SDK (FCM), Cloudinary API (Media storage), Brevo API (Transactional Mail) |
 | **Security** | JWT (Stateless Token Authentication), Password Hashing (BCrypt), RBAC, CORS Policies |
-| **DevOps & Infrastructure** | Docker, Docker Compose, Linux VM (Ubuntu 24.04 LTS), Nginx, Certbot SSL, UFW, GitHub Actions CI/CD |
+| **DevOps & Infrastructure** | Docker, Docker Compose, DigitalOcean Droplet (Ubuntu 24.04 LTS), Netlify (Frontend CDN), Nginx, Certbot SSL, UFW, GitHub Actions CI/CD |
 
 ---
 
@@ -219,23 +219,30 @@ users ───────────< topics ──────────�
 
 ---
 
-## 🚀 DevOps & Production VM Deployment
+## 🚀 DevOps & Production Deployment
 
-SafeVoice uses a professional Linux Virtual Machine (VM/VPS) deployment pattern, demonstrating production-ready cloud engineering standards.
+SafeVoice uses a **split-deployment** pattern: the backend runs on a **DigitalOcean Droplet** (Docker + Nginx), while all web frontends are deployed to **Netlify's global CDN**.
 
-### 🐳 Container Orchestration
-The root `docker-compose.yml` configures microservices with Docker bridge networking and automated healthchecks.
+### 🐳 Container Orchestration (DigitalOcean — Backend)
+The root `docker-compose.yml` configures backend microservices with Docker bridge networking and automated healthchecks.
 
 ```bash
-# Launch production services on Linux VM
+# Launch production backend services on DigitalOcean Droplet
 docker compose --profile prod up -d --build
 ```
 
-- **Production Profile (`prod`)**: Spawns PostgreSQL 15, Redis 7, Spring Boot API, Next.js Admin Dashboard, and Next.js Landing Page containers.
+- **Production Profile (`prod`)**: Spawns **PostgreSQL 15**, **Redis 7**, and the **Spring Boot API** containers.
 - **Isolated Bridge Network (`safevoice-net`)**: Ensures internal database and Redis ports remain unexposed to the public internet.
+- **Admin & Landing frontends** are deployed to Netlify (not inside Docker) for zero-cost global CDN delivery.
+
+### 🌐 Frontend Hosting (Netlify)
+Both web applications (`safevoice-admin` and `safevoice-landing`) are deployed directly to Netlify:
+- Netlify auto-builds from GitHub on every push to `main`.
+- `NEXT_PUBLIC_API_URL` environment variable is set in Netlify's dashboard to point at the DigitalOcean backend.
+- The `netlify.toml` at the repo root pre-configures the landing page build settings.
 
 ### 🔒 Security & Reverse Proxy (Nginx + SSL + UFW)
-For VM deployments (e.g. AWS EC2, Hetzner, DigitalOcean), Nginx operates as the high-performance reverse proxy and SSL termination point.
+On the DigitalOcean Droplet, Nginx operates as the high-performance reverse proxy and SSL termination point.
 
 1. **UFW Firewall Configuration**:
    ```bash
@@ -248,7 +255,7 @@ For VM deployments (e.g. AWS EC2, Hetzner, DigitalOcean), Nginx operates as the 
 2. **Nginx Reverse Proxy Block (`/etc/nginx/sites-available/safevoice-api`)**:
    ```nginx
    server {
-       server_name api.safevoice.domain.com;
+       server_name safevoice-api.duckdns.org;
 
        location / {
            proxy_pass http://localhost:8080;
@@ -265,7 +272,7 @@ For VM deployments (e.g. AWS EC2, Hetzner, DigitalOcean), Nginx operates as the 
 
 3. **Automated SSL/TLS Encryption**:
    ```bash
-   certbot --nginx -d api.safevoice.domain.com
+   certbot --nginx -d safevoice-api.duckdns.org
    ```
 
 ### 🔄 Automated CI/CD Pipeline (GitHub Actions)
@@ -276,11 +283,10 @@ The repository enforces continuous integration and automated deployment across t
   - Runs TypeScript type checking (`tsc --noEmit`) for the mobile application.
   - Builds Next.js production packages for Admin and Landing applications.
 
-- **CD Automated VM Deployment (`.github/workflows/deploy.yml`)**:
+- **CD Automated Deployment (`.github/workflows/deploy.yml`)**:
   - Triggers automatically upon merging into `main`.
-  - Connects to the Linux VM via encrypted SSH (`appleboy/ssh-action`).
-  - Fetches latest source code, rebuilds zero-downtime containers via `docker compose --profile prod up -d --build`, and prunes dangling images.
-  - Deploys Next.js Web applications to global CDN hosting endpoints.
+  - **Backend**: Connects to the **DigitalOcean Droplet** via encrypted SSH (`appleboy/ssh-action`), pulls latest source, and rebuilds containers via `docker compose --profile prod up -d --build`.
+  - **Frontend**: Deploys `safevoice-admin` and `safevoice-landing` to **Netlify** using the Netlify CLI (`netlify deploy --prod`), using `NETLIFY_AUTH_TOKEN`, `NETLIFY_ADMIN_SITE_ID`, and `NETLIFY_LANDING_SITE_ID` secrets.
 
 ---
 

@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SafeVoice — System Architecture</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --bg:#090d17;
+    --bg-grid:#0d1220;
+    --surface:#121a2b;
+    --surface-2:#161f34;
+    --border:#25304a;
+    --border-soft:#1c2540;
+    --text:#e7ecf6;
+    --text-dim:#8c97b3;
+    --text-faint:#5c6785;
+
+    --client:#8b7fff;
+    --edge:#f0b429;
+    --core:#2dd4bf;
+    --data:#38bdf8;
+    --cloud:#fb7185;
+    --pipeline:#a78bfa;
+    --ok:#34d399;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse 900px 500px at 15% -5%, rgba(45,212,191,0.08), transparent 60%),
+      radial-gradient(ellipse 900px 600px at 90% 10%, rgba(139,127,255,0.07), transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Space Grotesk', 'Segoe UI', sans-serif;
+    min-height:100vh;
+  }
+
+  /* ---------- header ---------- */
+  header{
+    padding:44px 32px 24px;
+    max-width:1400px;
+    margin:0 auto;
+    border-bottom:1px solid var(--border-soft);
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--core);
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:14px;
+  }
+  .eyebrow::before{
+    content:"";
+    width:7px;height:7px;border-radius:50%;
+    background:var(--core);
+    box-shadow:0 0 0 0 rgba(45,212,191,.6);
+    animation:livedot 2s infinite;
+  }
+  @keyframes livedot{
+    0%{box-shadow:0 0 0 0 rgba(45,212,191,.55);}
+    70%{box-shadow:0 0 0 9px rgba(45,212,191,0);}
+    100%{box-shadow:0 0 0 0 rgba(45,212,191,0);}
+  }
+  h1{
+    font-size:clamp(28px,4vw,44px);
+    margin:0 0 10px;
+    font-weight:700;
+    letter-spacing:-.01em;
+  }
+  h1 span{color:var(--text-dim); font-weight:500;}
+  header p.desc{
+    max-width:780px;
+    color:var(--text-dim);
+    font-size:15.5px;
+    line-height:1.6;
+    margin:0 0 22px;
+  }
+  .chips{display:flex; flex-wrap:wrap; gap:8px;}
+  .chip{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11.5px;
+    padding:6px 11px;
+    border:1px solid var(--border);
+    border-radius:100px;
+    color:var(--text-dim);
+    background:var(--surface);
+  }
+
+  /* ---------- legend ---------- */
+  .legend{
+    max-width:1400px;
+    margin:22px auto 0;
+    padding:0 32px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:22px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--text-dim);
+  }
+  .legend .item{display:flex; align-items:center; gap:9px;}
+  .legend .swatch{width:26px; height:0; border-top-width:3px; border-top-style:solid;}
+  .legend .swatch.dash{border-top-style:dashed;}
+  .legend .swatch.dot{border-top-style:dotted;}
+
+  /* ---------- layout ---------- */
+  .wrap{
+    max-width:1400px;
+    margin:26px auto 60px;
+    padding:0 32px;
+    display:grid;
+    grid-template-columns:1fr;
+    gap:22px;
+  }
+
+  .diagram-panel{
+    background:linear-gradient(180deg, var(--bg-grid), var(--bg));
+    border:1px solid var(--border-soft);
+    border-radius:16px;
+    padding:6px;
+  }
+  svg#diagram{display:block; width:100%; height:auto;}
+
+  /* node styling (classes applied via JS) */
+  .node{cursor:pointer;}
+  .node rect.box{
+    fill:var(--surface);
+    stroke:var(--border);
+    stroke-width:1.4;
+    transition:stroke .25s ease, filter .25s ease, transform .25s ease;
+    transform-origin:center;
+  }
+  .node:hover rect.box{
+    filter:brightness(1.18);
+  }
+  .node.selected rect.box{
+    stroke-width:2.2;
+  }
+  .node .icon{font-size:25px;}
+  .node .title{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:600;
+    font-size:16.5px;
+    fill:var(--text);
+  }
+  .node .sub{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    fill:var(--text-faint);
+  }
+  .group-label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    fill:var(--text-faint);
+  }
+  .zone{
+    fill:rgba(255,255,255,0.012);
+    stroke:var(--border-soft);
+    stroke-width:1.2;
+    stroke-dasharray:4 5;
+    rx:18;
+  }
+  .section-title{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:14px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    fill:var(--text-faint);
+  }
+
+  .edge-path{ fill:none; }
+  .flow-dot{ filter:drop-shadow(0 0 4px currentColor); }
+
+  /* pulse ring for the hub node */
+  .hub-ring{
+    fill:none;
+    stroke:var(--core);
+    stroke-width:1.4;
+    opacity:0;
+    transform-origin:center;
+    animation:pulseRing 2.6s ease-out infinite;
+  }
+  @keyframes pulseRing{
+    0%{opacity:.55; transform:scale(1);}
+    100%{opacity:0; transform:scale(1.14);}
+  }
+
+  /* ---------- drawer ---------- */
+  .drawer{
+    background:var(--surface);
+    border:1px solid var(--border-soft);
+    border-radius:16px;
+    padding:22px 26px;
+    min-height:120px;
+  }
+  .drawer .tag{
+    display:inline-block;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    padding:4px 9px;
+    border-radius:100px;
+    margin-bottom:12px;
+  }
+  .drawer h3{
+    margin:0 0 10px;
+    font-size:19px;
+    line-height:1.3;
+  }
+  .drawer p{
+    color:var(--text-dim);
+    font-size:13.5px;
+    line-height:1.65;
+    margin:0 0 14px;
+  }
+  .drawer ul{
+    margin:0; padding-left:18px;
+    color:var(--text-dim);
+    font-size:13px;
+    line-height:1.7;
+  }
+  .drawer .hint{
+    color:var(--text-faint);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+  }
+  .drawer .stack{
+    display:flex; flex-wrap:wrap; gap:6px; margin-top:14px;
+  }
+  .drawer .stack span{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    color:var(--text-dim);
+    border:1px solid var(--border);
+    padding:4px 8px;
+    border-radius:6px;
+  }
+
+  /* ---------- footer: monorepo + CI note ---------- */
+  footer{
+    max-width:1400px;
+    margin:0 auto 70px;
+    padding:0 32px;
+  }
+  .repo-card{
+    background:var(--surface);
+    border:1px solid var(--border-soft);
+    border-radius:16px;
+    padding:26px 28px;
+  }
+  .repo-card h2{
+    font-size:16px;
+    margin:0 0 14px;
+    display:flex;
+    align-items:center;
+    gap:9px;
+  }
+  .repo-card h2 .dot{width:8px;height:8px;border-radius:50%;background:var(--pipeline);}
+  pre.tree{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.3px;
+    line-height:1.7;
+    color:var(--text-dim);
+    margin:0;
+    overflow-x:auto;
+  }
+  pre.tree .dir{color:var(--core);}
+  pre.tree .comment{color:var(--text-faint);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">Live system map</div>
+  <h1>SafeVoice <span>— Architecture Overview</span></h1>
+  <p class="desc">
+    An anonymous civic-engagement platform split into four services: a React Native mobile app, two
+    Next.js web apps, and a Spring Boot API — deployed as a Docker backend on a DigitalOcean droplet
+    behind Nginx, with the frontends shipped separately to Netlify's CDN. Click any component below
+    for details.
+  </p>
+  <div class="chips">
+    <span class="chip">Java 21</span>
+    <span class="chip">Spring Boot 3.4</span>
+    <span class="chip">React Native · Expo 56</span>
+    <span class="chip">Next.js 16</span>
+    <span class="chip">PostgreSQL 15</span>
+    <span class="chip">Redis 7</span>
+    <span class="chip">Docker Compose</span>
+    <span class="chip">GitHub Actions</span>
+  </div>
+</header>
+
+<div class="legend">
+  <div class="item"><span class="swatch" style="border-color:var(--core)"></span> HTTPS request / response</div>
+  <div class="item"><span class="swatch dash" style="border-color:var(--core)"></span> WebSocket · STOMP (live)</div>
+  <div class="item"><span class="swatch" style="border-color:var(--edge)"></span> TLS termination boundary</div>
+  <div class="item"><span class="swatch dash" style="border-color:var(--cloud)"></span> External API call</div>
+  <div class="item"><span class="swatch dot" style="border-color:var(--pipeline)"></span> CI / CD automated deploy</div>
+</div>
+
+<div class="wrap">
+  <div class="diagram-panel">
+    <svg id="diagram" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
+
+  <div class="drawer" id="drawer">
+    <span class="tag" id="d-tag" style="background:rgba(45,212,191,.12); color:var(--core);">Overview</span>
+    <h3 id="d-title">Explore the system</h3>
+    <p id="d-desc">
+      This diagram mirrors SafeVoice's real deployment topology. Client apps talk to Nginx over HTTPS
+      and WSS; Nginx terminates TLS and forwards to the Spring Boot API on port 8080; the API reads and
+      writes PostgreSQL, caches through Redis, and calls out to Firebase, Cloudinary and Brevo. A
+      separate GitHub Actions pipeline builds and ships every service on merge to <code>main</code>.
+    </p>
+    <p class="hint">↳ Click a node in the diagram to see how it fits in.</p>
+    <div class="stack" id="d-stack"></div>
+  </div>
+</div>
+
+<footer>
+  <div class="repo-card">
+    <h2><span class="dot"></span>Monorepo layout</h2>
+    <pre class="tree"><span class="dir">Safevoice/</span>
+├── <span class="dir">.github/workflows/</span>        <span class="comment"># ci.yml · deploy.yml</span>
+├── <span class="dir">safevoice-backend/</span>         <span class="comment"># Spring Boot 3 REST + WebSocket API (Java 21)</span>
+│   ├── config · controller · dto · model · repository · service
+│   └── db/migration/                <span class="comment"># Flyway SQL, versioned V1..V4</span>
+├── <span class="dir">safevoice-app/</span>             <span class="comment"># React Native / Expo mobile client</span>
+│   └── components · navigation · screens · services · types
+├── <span class="dir">safevoice-admin/</span>           <span class="comment"># Next.js 16 moderation portal → Netlify</span>
+├── <span class="dir">safevoice-landing/</span>         <span class="comment"># Next.js 16 marketing site → Netlify</span>
+└── docker-compose.yml               <span class="comment"># prod profile: api + postgres + redis</span></pre>
+  </div>
+</footer>
+
+<script>
+const NS = "http://www.w3.org/2000/svg";
+const svg = document.getElementById('diagram');
+svg.setAttribute('viewBox', '0 0 1320 1100');
+
+function el(tag, attrs={}, parent=svg){
+  const e = document.createElementNS(NS, tag);
+  for(const k in attrs) e.setAttribute(k, attrs[k]);
+  parent.appendChild(e);
+  return e;
+}
+
+/* ---------------- data ---------------- */
+const nodes = [
+  // Client layer
+  {id:'mobile', x:20, y:40, w:320, h:100, color:'client', icon:'📱', title:'Mobile App', sub:'React Native · Expo SDK 56',
+   tag:'Client', desc:'Cross-platform iOS/Android client. Infinite-scroll feeds with FlashList, offline session caching via AsyncStorage, connectivity monitoring via NetInfo, and a STOMP client for live topic and notification updates.',
+   stack:['React Native 0.85','Expo 56','TypeScript','React Navigation 7']},
+  {id:'admin', x:500, y:40, w:320, h:100, color:'client', icon:'🛡️', title:'Admin Portal', sub:'Next.js 16 · App Router',
+   tag:'Client', desc:'Moderation control panel: report queue with severity/status filters, one-click actions (dismiss, hide, ban), user role management (USER / MODERATOR / ADMIN), and a full audit-log viewer.',
+   stack:['Next.js 16','React 19','Tailwind v4']},
+  {id:'landing', x:980, y:40, w:320, h:100, color:'client', icon:'🌐', title:'Landing Page', sub:'Next.js 16 · Marketing',
+   tag:'Client', desc:'SEO-optimized public site explaining SafeVoice\'s privacy model and architecture, with links to download the mobile app.',
+   stack:['Next.js 16','React 19','Netlify']},
+
+  // Netlify
+  {id:'netlify', x:500, y:164, w:800, h:84, color:'core', icon:'☁️', title:'Netlify Global CDN', sub:'Auto-deploy on push to main',
+   tag:'Hosting', desc:'Builds and serves the Admin and Landing apps from GitHub on every push to main. NEXT_PUBLIC_API_URL is configured here to point both apps at the DigitalOcean backend over HTTPS.',
+   stack:['Netlify CDN','Zero-config CI builds']},
+
+  // Droplet zone children
+  {id:'nginx', x:190, y:298, w:460, h:88, color:'edge', icon:'🔒', title:'Nginx Reverse Proxy', sub:"Let's Encrypt · Certbot SSL",
+   tag:'Edge / Security', desc:'Terminates HTTPS and WSS traffic for safevoice-api.duckdns.org and forwards it to the Spring Boot service on port 8080. UFW firewall exposes only ports 22, 80 and 443.',
+   stack:['Nginx','Certbot','UFW firewall']},
+  {id:'backend', x:80, y:404, w:680, h:132, color:'core', icon:'⚙️', title:'Spring Boot Backend', sub:'Java 21 · REST + WebSocket API', hub:true,
+   tag:'Application core', desc:'Stateless JWT authentication with refresh-token rotation, RBAC-guarded admin endpoints, STOMP channels (/topic/topics, /topic/notifications) for sub-second live updates, and Flyway-versioned schema migrations. Swagger UI at /swagger-ui/index.html.',
+   stack:['Spring Boot 3.4','Spring Security','Spring WebSocket','JWT','Flyway']},
+  {id:'postgres', x:40, y:554, w:360, h:100, color:'data', icon:'🗄️', title:'PostgreSQL 15', sub:'System of record',
+   tag:'Data layer', desc:'UUID-keyed relational store: users → topics → comments (threaded via parent_comment_id), polls / poll_options, user_poll_votes (composite key blocks double voting), reports, and immutable audit_logs.',
+   stack:['PostgreSQL 15','Flyway migrations']},
+  {id:'redis', x:420, y:554, w:360, h:100, color:'data', icon:'⚡', title:'Redis 7', sub:'Session & tally cache',
+   tag:'Data layer', desc:'Caches active sessions and recalculates poll vote tallies instantly, keeping counts consistent under concurrent voting without hitting Postgres on every read.',
+   stack:['Redis 7','In-memory cache']},
+
+  // external cloud
+  {id:'firebase', x:40, y:744, w:380, h:106, color:'cloud', icon:'🔔', title:'Firebase Cloud Messaging', sub:'Push notifications',
+   tag:'External service', desc:'Delivers push notifications to mobile devices for safety alerts, moderation outcomes and topic activity, authenticated via a Firebase service-account credential.',
+   stack:['Firebase Admin SDK','FCM']},
+  {id:'cloudinary', x:460, y:744, w:380, h:106, color:'cloud', icon:'🖼️', title:'Cloudinary', sub:'Media pipeline',
+   tag:'External service', desc:'Handles signed, direct uploads of images and video attached to topics and comments — keeping large media traffic off the application server.',
+   stack:['Cloudinary API','Signed uploads']},
+  {id:'brevo', x:880, y:744, w:380, h:106, color:'cloud', icon:'✉️', title:'Brevo Email API', sub:'Transactional email',
+   tag:'External service', desc:'Sends transactional email — password resets and critical security notices — from noreply@safevoice.com.',
+   stack:['Brevo (Sendinblue) API']},
+
+  // CI/CD
+  {id:'gha', x:40, y:940, w:380, h:106, color:'pipeline', icon:'🐙', title:'GitHub Actions · CI', sub:'Build, test, type-check',
+   tag:'CI / CD', desc:'On every push: compiles the Spring Boot service on Java 21 Temurin and runs unit tests, type-checks the mobile app (tsc --noEmit), and builds the Admin and Landing Next.js apps.',
+   stack:['GitHub Actions','Maven','tsc','Next build']},
+  {id:'cd-backend', x:460, y:940, w:380, h:106, color:'pipeline', icon:'🚀', title:'CD · Deploy to Droplet', sub:'SSH · docker compose',
+   tag:'CI / CD', desc:'On merge to main: connects to the DigitalOcean droplet over encrypted SSH (appleboy/ssh-action), pulls the latest source, and rebuilds containers via "docker compose --profile prod up -d --build".',
+   stack:['appleboy/ssh-action','Docker Compose']},
+  {id:'cd-frontend', x:880, y:940, w:380, h:106, color:'pipeline', icon:'🌍', title:'CD · Deploy to Netlify', sub:'Netlify CLI --prod',
+   tag:'CI / CD', desc:'Publishes safevoice-admin and safevoice-landing to Netlify via the Netlify CLI, authenticated with stored NETLIFY_AUTH_TOKEN and per-site ID secrets.',
+   stack:['Netlify CLI','netlify deploy --prod']},
+];
+
+const nodeMap = Object.fromEntries(nodes.map(n=>[n.id,n]));
+
+const edges = [
+  {from:'mobile', fromSide:'bottom', to:'nginx', toSide:'top', type:'ws', label:'HTTPS / STOMP WSS'},
+  {from:'admin', fromSide:'bottom', to:'netlify', toSide:'top'},
+  {from:'landing', fromSide:'bottom', to:'netlify', toSide:'top'},
+  {from:'netlify', fromSide:'bottom', to:'nginx', toSide:'top', type:'https', label:'HTTPS'},
+  {from:'nginx', fromSide:'bottom', to:'backend', toSide:'top', type:'ssl', label:'proxy_pass :8080'},
+  {from:'backend', fromSide:'bottomleft', to:'postgres', toSide:'top', type:'https'},
+  {from:'backend', fromSide:'bottomright', to:'redis', toSide:'top', type:'https'},
+  {from:'backend', fromSide:'bottomleft2', to:'firebase', toSide:'top', type:'cloud'},
+  {from:'backend', fromSide:'bottom', to:'cloudinary', toSide:'top', type:'cloud'},
+  {from:'backend', fromSide:'bottomright2', to:'brevo', toSide:'top', type:'cloud'},
+  {from:'gha', fromSide:'right', to:'cd-backend', toSide:'left', type:'cicd'},
+  {from:'gha', fromSide:'topright', to:'cd-frontend', toSide:'left', type:'cicd'},
+  {from:'cd-backend', fromSide:'topcurve', to:'nginx', toSide:'bottom2', type:'cicd', label:'ssh deploy'},
+  {from:'cd-frontend', fromSide:'topcurve2', to:'netlify', toSide:'bottom2', type:'cicd', label:'netlify deploy'},
+];
+
+const colorVar = c => `var(--${c})`;
+
+function anchor(node, side){
+  const {x,y,w,h} = node;
+  switch(side){
+    case 'top': return {x:x+w/2, y:y};
+    case 'bottom': return {x:x+w/2, y:y+h};
+    case 'bottom2': return {x:x+w*0.72, y:y+h};
+    case 'left': return {x:x, y:y+h/2};
+    case 'right': return {x:x+w, y:y+h/2};
+    case 'topright': return {x:x+w, y:y+h*0.3};
+    case 'bottomleft': return {x:x+w*0.18, y:y+h};
+    case 'bottomleft2': return {x:x+w*0.02, y:y+h*0.7};
+    case 'bottomright': return {x:x+w*0.82, y:y+h};
+    case 'bottomright2': return {x:x+w*0.98, y:y+h*0.7};
+    case 'topcurve': return {x:x+w*0.25, y:y};
+    case 'topcurve2': return {x:x+w*0.25, y:y};
+    default: return {x:x+w/2, y:y+h/2};
+  }
+}
+
+function bezier(p1,p2, bulge=0){
+  const dx = p2.x-p1.x, dy = p2.y-p1.y;
+  if(Math.abs(dy) >= Math.abs(dx)){
+    const c = Math.max(30, Math.abs(dy)*0.45);
+    return `M ${p1.x} ${p1.y} C ${p1.x} ${p1.y+c}, ${p2.x+bulge} ${p2.y-c}, ${p2.x} ${p2.y}`;
+  } else {
+    const c = Math.max(30, Math.abs(dx)*0.45);
+    return `M ${p1.x} ${p1.y} C ${p1.x+c} ${p1.y}, ${p2.x-c} ${p2.y}, ${p2.x} ${p2.y}`;
+  }
+}
+
+/* ---------------- draw zones ---------------- */
+const zones = el('g', {});
+function zoneRect(x,y,w,h,label){
+  el('rect', {class:'zone', x, y, width:w, height:h, rx:18}, zones);
+  el('text', {class:'section-title', x:x+20, y:y+30}, zones).textContent = label;
+}
+zoneRect(20, 258, 800, 416, 'DigitalOcean Droplet · Ubuntu 24.04 LTS  (Docker)');
+zoneRect(20, 704, 1280, 166, 'External Cloud Integrations  ·  called from the Spring Boot backend');
+zoneRect(20, 900, 1280, 166, 'Automated CI / CD  ·  GitHub Actions  (triggers on push to main)');
+
+/* ---------------- draw edges (behind nodes) ---------------- */
+const edgeLayer = el('g', {});
+const edgeStyles = {
+  https:{color:'core', dash:'0'},
+  ws:{color:'core', dash:'7 6'},
+  ssl:{color:'edge', dash:'0'},
+  cloud:{color:'cloud', dash:'6 6'},
+  cicd:{color:'pipeline', dash:'2 6'},
+};
+
+edges.forEach((e,i)=>{
+  const style = edgeStyles[e.type] || edgeStyles.https;
+  const p1 = anchor(nodeMap[e.from], e.fromSide);
+  const p2 = anchor(nodeMap[e.to], e.toSide);
+  const d = bezier(p1,p2);
+  const pathId = `edge-${i}`;
+  const path = el('path', {
+    id:pathId, class:'edge-path', d,
+    stroke:colorVar(style.color), 'stroke-width':2.2,
+    'stroke-dasharray':style.dash, opacity:0.55
+  }, edgeLayer);
+
+  if(e.label){
+    const mid = {x:(p1.x+p2.x)/2, y:(p1.y+p2.y)/2};
+    el('rect', {x:mid.x-58, y:mid.y-12, width:116, height:22, rx:5, fill:'var(--bg)', stroke:'var(--border)', 'stroke-width':1}, edgeLayer);
+    el('text', {x:mid.x, y:mid.y+4, 'text-anchor':'middle', class:'group-label', 'font-size':11}, edgeLayer).textContent = e.label;
+  }
+
+  // animated flow dot
+  const dot = el('circle', {r:4, fill:colorVar(style.color), class:'flow-dot'}, edgeLayer);
+  const anim = el('animateMotion', {
+    dur:(3.2 + (i%4)*0.7).toFixed(1)+'s',
+    repeatCount:'indefinite',
+    rotate:'auto'
+  }, dot);
+  const mpath = el('mpath', {}, anim);
+  mpath.setAttributeNS('http://www.w3.org/1999/xlink','href','#'+pathId);
+});
+
+/* ---------------- draw nodes ---------------- */
+const nodeLayer = el('g', {});
+nodes.forEach(n=>{
+  const g = el('g', {class:'node', 'data-id':n.id}, nodeLayer);
+
+  if(n.hub){
+    el('rect', {class:'hub-ring', x:n.x-7, y:n.y-7, width:n.w+14, height:n.h+14, rx:22}, g);
+  }
+
+  el('rect', {
+    class:'box', x:n.x, y:n.y, width:n.w, height:n.h, rx:16,
+    stroke: colorVar(n.color)
+  }, g);
+
+  // left accent bar
+  el('rect', {x:n.x, y:n.y+16, width:4.5, height:n.h-32, rx:2.2, fill:colorVar(n.color)}, g);
+
+  el('text', {class:'icon', x:n.x+28, y:n.y+n.h/2+9}, g).textContent = n.icon;
+  el('text', {class:'title', x:n.x+66, y:n.y+n.h/2-4}, g).textContent = n.title;
+  el('text', {class:'sub', x:n.x+66, y:n.y+n.h/2+18}, g).textContent = n.sub;
+
+  g.addEventListener('click', ()=>selectNode(n.id));
+});
+
+/* ---------------- drawer interaction ---------------- */
+const drawer = {
+  tag: document.getElementById('d-tag'),
+  title: document.getElementById('d-title'),
+  desc: document.getElementById('d-desc'),
+  stack: document.getElementById('d-stack'),
+};
+
+function selectNode(id){
+  document.querySelectorAll('.node').forEach(g=>g.classList.remove('selected'));
+  const g = document.querySelector(`.node[data-id="${id}"]`);
+  if(g) g.classList.add('selected');
+
+  const n = nodeMap[id];
+  const c = colorVar(n.color);
+  drawer.tag.textContent = n.tag;
+  drawer.tag.style.background = `color-mix(in srgb, ${c} 16%, transparent)`;
+  drawer.tag.style.color = c;
+  drawer.title.textContent = n.title;
+  drawer.desc.textContent = n.desc;
+  drawer.stack.innerHTML = '';
+  (n.stack||[]).forEach(s=>{
+    const span = document.createElement('span');
+    span.textContent = s;
+    drawer.stack.appendChild(span);
+  });
+}
+</script>
+</body>
+</html>

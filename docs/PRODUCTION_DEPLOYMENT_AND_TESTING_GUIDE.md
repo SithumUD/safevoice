@@ -10,7 +10,7 @@ Before running any commands, make sure you have the following accounts and files
 
 | # | Item | Where to Get It / Notes |
 |---|---|---|
-| 1 | **Hetzner VPS** | Ubuntu 24.04 LTS server (IPv4 address & `root` password). |
+| 1 | **DigitalOcean Droplet** | Ubuntu 24.04 LTS Droplet (IPv4 address & `root` password or SSH key). Create at [cloud.digitalocean.com](https://cloud.digitalocean.com). |
 | 2 | **GitHub Account** | Repository containing your SafeVoice code. |
 | 3 | **Netlify Account** | Free account at [netlify.com](https://www.netlify.com). |
 | 4 | **Firebase Project** | Firebase Admin JSON file (`safevoice-38eda-firebase-adminsdk-fbsvc-6b444b6abe.json`). |
@@ -36,7 +36,7 @@ Before running any commands, make sure you have the following accounts and files
                                               │ HTTPS Requests
                                               ▼
                                  ┌───────────────────────────┐
-                                 │   HETZNER VPS SERVER      │
+                                 │   DIGITALOCEAN DROPLET    │
                                  │   (api.duckdns.org)       │
                                  │                           │
                                  │  ┌─────────────────────┐  │
@@ -55,17 +55,28 @@ Before running any commands, make sure you have the following accounts and files
 
 ---
 
-## 🚀 STEP 1: Setting Up Your Hetzner VPS Server
+## 🚀 STEP 1: Setting Up Your DigitalOcean Droplet
 
-### 1.1 Connect to Your Hetzner VPS via SSH
+### 1.1 Create a DigitalOcean Droplet
+1. Log in to [cloud.digitalocean.com](https://cloud.digitalocean.com).
+2. Click **Create** → **Droplets**.
+3. Choose the following settings:
+   - **Region**: Select the region closest to your users.
+   - **OS**: **Ubuntu 24.04 (LTS) x64**.
+   - **Droplet Type**: Basic → Regular (SSD) → **$6/mo** (1 GB RAM / 1 CPU) for testing, or **$12/mo** (2 GB RAM) for production.
+   - **Authentication**: Choose **SSH Key** (recommended) or **Password**.
+4. Click **Create Droplet** and wait ~60 seconds.
+5. Copy your Droplet's **IPv4 address** from the dashboard (e.g., `123.45.67.89`).
+
+### 1.2 Connect to Your DigitalOcean Droplet via SSH
 Open **PowerShell** or **Terminal** on your computer and run:
 ```bash
-ssh root@<YOUR_HETZNER_VPS_IP>
+ssh root@<YOUR_DROPLET_IP>
 ```
-*(Replace `<YOUR_HETZNER_VPS_IP>` with your actual server IP, e.g., `123.45.67.89`. Type `yes` if prompted and enter your server password).*
+*(Replace `<YOUR_DROPLET_IP>` with your actual Droplet IP, e.g., `123.45.67.89`. Type `yes` if prompted and enter your server password or use your SSH key).*
 
-### 1.2 Update Server & Install Docker, Git, Nginx & Certbot
-Copy and paste this entire block of commands into your VPS terminal:
+### 1.3 Update Server & Install Docker, Git, Nginx & Certbot
+Copy and paste this entire block of commands into your Droplet terminal:
 ```bash
 # Update server packages
 apt update && apt upgrade -y
@@ -93,11 +104,11 @@ ufw --force enable
 1. Open your browser and go to [duckdns.org](https://www.duckdns.org).
 2. Log in using your GitHub account.
 3. In the **subdomain** box, type a unique name (e.g. `safevoice-api`) and click **add domain**.
-4. Make sure the IP address listed next to your domain matches your **Hetzner VPS IP**.
+4. Make sure the IP address listed next to your domain matches your **DigitalOcean Droplet IP**.
 5. Your domain is now: **`safevoice-api.duckdns.org`**.
 
-### 2.2 Configure Nginx on Hetzner VPS
-1. Run this command on your VPS to create the Nginx configuration file:
+### 2.2 Configure Nginx on DigitalOcean Droplet
+1. Run this command on your Droplet to create the Nginx configuration file:
    ```bash
    nano /etc/nginx/sites-available/safevoice-api
    ```
@@ -127,7 +138,7 @@ ufw --force enable
    ```
 
 ### 2.3 Get Free SSL Certificate (HTTPS) using Certbot
-Run this command on your VPS:
+Run this command on your Droplet:
 ```bash
 certbot --nginx -d safevoice-api.duckdns.org
 ```
@@ -139,8 +150,8 @@ Now your backend has a secure **`https://safevoice-api.duckdns.org`** endpoint!
 
 ## 📦 STEP 3: Clone Project Code & Launch Backend with Docker
 
-### 3.1 Clone Project to VPS
-Run these commands on your VPS:
+### 3.1 Clone Project to DigitalOcean Droplet
+Run these commands on your Droplet:
 ```bash
 mkdir -p /opt/safevoice
 cd /opt/safevoice
@@ -215,10 +226,10 @@ docker compose logs -f backend
 
 ## 🔑 STEP 4: Connecting GitHub Actions & Automatic CI/CD Pipeline
 
-Whenever you push code to GitHub (`git push origin main`), GitHub Actions will automatically test and deploy your code to Hetzner and Netlify.
+Whenever you push code to GitHub (`git push origin main`), GitHub Actions will automatically test and deploy your code to DigitalOcean and Netlify.
 
 ### 4.1 Generate SSH Deployment Key
-Run this command on your **VPS**:
+Run this command on your **DigitalOcean Droplet**:
 ```bash
 ssh-keygen -t ed25519 -C "github-actions" -f ~/.ssh/github_deploy -N ""
 ```
@@ -238,24 +249,24 @@ cat ~/.ssh/github_deploy
 3. Click the green button: **New repository secret**.
 4. Add the following **6 Secrets** one by one:
 
-#### Secret 1: `HETZNER_HOST`
-- **Name**: `HETZNER_HOST`
-- **Value**: Your Hetzner VPS IP Address (e.g. `123.45.67.89`).
+#### Secret 1: `DO_HOST`
+- **Name**: `DO_HOST`
+- **Value**: Your DigitalOcean Droplet IP Address (e.g. `123.45.67.89`).
 
-#### Secret 2: `HETZNER_USER`
-- **Name**: `HETZNER_USER`
+#### Secret 2: `DO_USER`
+- **Name**: `DO_USER`
 - **Value**: `root`
 
-#### Secret 3: `HETZNER_SSH_KEY`
-- **Name**: `HETZNER_SSH_KEY`
+#### Secret 3: `DO_SSH_KEY`
+- **Name**: `DO_SSH_KEY`
 - **Value**: Paste the entire private key output copied in Step 4.1.
 
 #### Secret 4: `NETLIFY_AUTH_TOKEN`
 1. Open [Netlify User Settings → Personal Access Tokens](https://app.netlify.com/user/applications#personal-access-tokens).
 2. Click **New Access Token**, enter description `GitHub Actions`, and click **Generate Token**.
 3. Copy token value and paste into GitHub Secret:
-- **Name**: `NETLIFY_AUTH_TOKEN`
-- **Value**: *(your Netlify token)*
+   - **Name**: `NETLIFY_AUTH_TOKEN`
+   - **Value**: *(your Netlify token)*
 
 #### Secret 5: `NETLIFY_ADMIN_SITE_ID`
 *(You will get this ID after creating the Netlify Admin site in Step 5.1 below).*
@@ -266,6 +277,8 @@ cat ~/.ssh/github_deploy
 *(You will get this ID after creating the Netlify Landing site in Step 5.2 below).*
 - **Name**: `NETLIFY_LANDING_SITE_ID`
 - **Value**: *(Netlify Landing Site API ID)*
+
+> 💡 **Note**: If your existing GitHub Actions workflow uses `HETZNER_HOST` / `HETZNER_SSH_KEY` secret names, rename them in `.github/workflows/deploy.yml` to `DO_HOST`, `DO_USER`, and `DO_SSH_KEY` to match the new naming.
 
 ---
 
@@ -293,7 +306,10 @@ cat ~/.ssh/github_deploy
 3. Fill in build settings:
    - **Base directory**: `safevoice-landing`
    - **Build command**: `npm run build`
-   - **Publish directory**: `.next`
+   - **Publish directory**: `safevoice-landing/out`
+
+   > ℹ️ The `netlify.toml` at the root of your repo already configures this automatically. Netlify will detect it on import.
+
 4. Click **Environment variables** → **Add a variable**:
    - **Key**: `NEXT_PUBLIC_API_URL`
    - **Value**: `https://safevoice-api.duckdns.org/api/v1`
@@ -428,8 +444,8 @@ git commit -m "Testing GitHub Actions deployment"
 git push origin main
 ```
 Go to GitHub Repository → **Actions** tab.
-- **Expected Result**: GitHub Actions runs `ci.yml` and `deploy.yml`, builds your code, tests it, and automatically updates your Hetzner VPS and Netlify sites!
+- **Expected Result**: GitHub Actions runs `ci.yml` and `deploy.yml`, builds your code, tests it, and automatically updates your **DigitalOcean Droplet** (backend) and **Netlify sites** (frontend)!
 
 ---
 
-🎉 **Congratulations!** Your entire SafeVoice platform is now 100% deployed, secure, automated, and verified for production!
+🎉 **Congratulations!** Your entire SafeVoice platform is now 100% deployed on **DigitalOcean** (backend) and **Netlify** (frontend), secure, automated, and verified for production!
