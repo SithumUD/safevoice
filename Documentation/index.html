@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SafeVoice — Official Documentation & Setup Guide</title>
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-hover: #4338CA;
+            --bg-body: #0F172A;
+            --bg-card: #1E293B;
+            --bg-code: #090D16;
+            --text-main: #F8FAFC;
+            --text-muted: #94A3B8;
+            --accent-green: #10B981;
+            --accent-orange: #F59E0B;
+            --border: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            width: 280px;
+            background-color: var(--bg-card);
+            border-right: 1px solid var(--border);
+            padding: 2rem 1.5rem;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #FFF;
+            margin-bottom: 2rem;
+        }
+
+        .brand span {
+            background: linear-gradient(135deg, #6366F1, #A855F7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .nav-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .nav-links {
+            list-style: none;
+        }
+
+        .nav-links a {
+            display: block;
+            padding: 0.6rem 0.8rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: #FFF;
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Main Content */
+        .content {
+            margin-left: 280px;
+            padding: 3rem 4rem;
+            max-width: 1000px;
+            width: 100%;
+        }
+
+        h1 { font-size: 2.25rem; margin-bottom: 1rem; color: #FFF; }
+        h2 { font-size: 1.5rem; margin: 2rem 0 1rem; color: #FFF; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+        h3 { font-size: 1.15rem; margin: 1.5rem 0 0.75rem; color: #E2E8F0; }
+        p { line-height: 1.7; color: var(--text-muted); margin-bottom: 1rem; }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.6rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: 4px;
+            background: rgba(79, 70, 229, 0.2);
+            color: #818CF8;
+            margin-right: 0.5rem;
+        }
+
+        .badge-green { background: rgba(16, 185, 129, 0.2); color: #34D399; }
+        .badge-orange { background: rgba(245, 158, 11, 0.2); color: #FBBF24; }
+
+        /* Code Block */
+        pre {
+            background-color: var(--bg-code);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.25rem;
+            overflow-x: auto;
+            margin: 1rem 0;
+            color: #E2E8F0;
+            font-family: 'Fira Code', Consolas, Monaco, monospace;
+            font-size: 0.875rem;
+            line-height: 1.6;
+        }
+
+        code {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'Fira Code', Consolas, monospace;
+            font-size: 0.85em;
+            color: #F1F5F9;
+        }
+
+        /* Callout Box */
+        .callout {
+            border-left: 4px solid var(--primary);
+            background: rgba(30, 41, 59, 0.7);
+            padding: 1.25rem;
+            border-radius: 0 8px 8px 0;
+            margin: 1.5rem 0;
+        }
+
+        .callout-title {
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: #FFF;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background-color: var(--bg-card);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 0.85rem 1.2rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        th {
+            background-color: rgba(255, 255, 255, 0.03);
+            color: #FFF;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="brand">
+            🛡️ <span>SafeVoice</span>
+        </div>
+
+        <div class="nav-group">
+            <div class="nav-title">Getting Started</div>
+            <ul class="nav-links">
+                <li><a href="#overview">Overview & Tech Stack</a></li>
+                <li><a href="#prerequisites">Prerequisites</a></li>
+                <li><a href="#structure">Monorepo Structure</a></li>
+            </ul>
+        </div>
+
+        <div class="nav-group">
+            <div class="nav-title">Installation</div>
+            <ul class="nav-links">
+                <li><a href="#backend-setup">1. Backend Setup</a></li>
+                <li><a href="#docker-setup">2. Quick Docker Setup</a></li>
+                <li><a href="#mobile-setup">3. Mobile App (Expo)</a></li>
+                <li><a href="#admin-setup">4. Admin Portal</a></li>
+                <li><a href="#landing-setup">5. Landing Page</a></li>
+            </ul>
+        </div>
+
+        <div class="nav-group">
+            <div class="nav-title">Integrations</div>
+            <ul class="nav-links">
+                <li><a href="#firebase">Firebase FCM</a></li>
+                <li><a href="#cloudinary">Cloudinary Media</a></li>
+                <li><a href="#brevo">Brevo Email Service</a></li>
+            </ul>
+        </div>
+
+        <div class="nav-group">
+            <div class="nav-title">Support & Credentials</div>
+            <ul class="nav-links">
+                <li><a href="#credentials">Default Admin Login</a></li>
+                <li><a href="#faq">FAQ & Troubleshooting</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="content">
+        <h1 id="overview">SafeVoice Buyer Documentation</h1>
+        <p>
+            <span class="badge badge-green">v1.0.0</span>
+            <span class="badge">Spring Boot 3.4</span>
+            <span class="badge">React Native Expo 56</span>
+            <span class="badge badge-orange">Next.js 16</span>
+        </p>
+        <p>
+            Thank you for purchasing <strong>SafeVoice</strong>! This official documentation walks you through building, configuring, and deploying the backend service, cross-platform mobile application, admin moderation panel, and marketing landing page.
+        </p>
+
+        <h2 id="prerequisites">📋 Prerequisites</h2>
+        <p>Ensure your environment has the following software installed before proceeding:</p>
+        <ul>
+            <li><strong>Java Development Kit (JDK 21+)</strong> — Required for backend.</li>
+            <li><strong>Node.js (v20+ LTS) & npm</strong> — Required for mobile and frontends.</li>
+            <li><strong>Docker & Docker Compose</strong> — Recommended for instant containerized deployment.</li>
+            <li><strong>PostgreSQL 15+ & Redis 7+</strong> — Required if running outside Docker.</li>
+        </ul>
+
+        <h2 id="structure">📁 Monorepo Overview</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Directory</th>
+                    <th>Technology</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>safevoice-backend/</code></td>
+                    <td>Spring Boot 3.4 / Java 21</td>
+                    <td>REST API, STOMP WebSockets, JWT Auth & Security</td>
+                </tr>
+                <tr>
+                    <td><code>safevoice-app/</code></td>
+                    <td>React Native / Expo 56</td>
+                    <td>Cross-platform mobile application for iOS & Android</td>
+                </tr>
+                <tr>
+                    <td><code>safevoice-admin/</code></td>
+                    <td>Next.js 16 (App Router)</td>
+                    <td>Admin Moderation Portal & Audit Log Dashboard</td>
+                </tr>
+                <tr>
+                    <td><code>safevoice-landing/</code></td>
+                    <td>Next.js 16 / Tailwind v4</td>
+                    <td>Marketing landing page and web promotional site</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2 id="docker-setup">⚡ Quick Docker One-Command Setup (Recommended)</h2>
+        <div class="callout">
+            <div class="callout-title">💡 Easiest Way to Deploy</div>
+            You can launch PostgreSQL 15, Redis 7, and the Spring Boot backend with a single command!
+        </div>
+        <pre><code># 1. Copy the example environment template
+cp .env.example .env
+
+# 2. Start all services in detached mode
+docker compose up -d --build
+
+# Verify all containers are healthy
+docker compose ps</code></pre>
+
+        <h2 id="backend-setup">🛠️ 1. Backend Manual Setup (`safevoice-backend`)</h2>
+        <p>If you prefer running the backend manually via Maven:</p>
+        <pre><code>cd safevoice-backend
+
+# 1. Copy environment variables file
+cp .env.example .env
+
+# 2. Build the project
+./mvnw clean package -DskipTests
+
+# 3. Run the application
+java -jar target/safevoice-0.0.1-SNAPSHOT.jar</code></pre>
+
+        <h2 id="mobile-setup">📱 2. Mobile App Setup (`safevoice-app`)</h2>
+        <pre><code>cd safevoice-app
+
+# 1. Install dependencies
+npm install
+
+# 2. Copy environment config
+cp .env.example .env
+
+# Edit .env and set your server's backend URL:
+# EXPO_PUBLIC_API_URL=http://YOUR_SERVER_IP:8080/api/v1
+# EXPO_PUBLIC_WS_URL=ws://YOUR_SERVER_IP:8080/ws
+
+# 3. Start Expo local development server
+npx expo start</code></pre>
+
+        <h3>Building Standalone APK / AAB for Play Store & App Store</h3>
+        <pre><code># Build Android APK for testing
+npx eas build -p android --profile preview
+
+# Build Android AAB for Google Play Store
+npx eas build -p android --profile production</code></pre>
+
+        <h2 id="admin-setup">🛡️ 3. Admin Moderation Portal Setup (`safevoice-admin`)</h2>
+        <pre><code>cd safevoice-admin
+
+# 1. Install node dependencies
+npm install
+
+# 2. Copy environment file
+cp .env.example .env.local
+
+# 3. Run development server
+npm run dev
+
+# 4. Build for production (Netlify / Vercel / Docker)
+npm run build</code></pre>
+
+        <h2 id="landing-setup">🌐 4. Landing Page Setup (`safevoice-landing`)</h2>
+        <pre><code>cd safevoice-landing
+npm install
+npm run dev</code></pre>
+
+        <h2 id="credentials">🔑 Default SuperAdmin Login</h2>
+        <p>When the backend launches for the first time, it automatically seeds the initial SuperAdmin account:</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Field</th>
+                    <th>Default Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Email</strong></td>
+                    <td><code>admin@safevoice.org</code></td>
+                </tr>
+                <tr>
+                    <td><strong>Password</strong></td>
+                    <td><code>AdminPassword123!</code></td>
+                </tr>
+                <tr>
+                    <td><strong>Role</strong></td>
+                    <td><code>SUPER_ADMIN</code></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2 id="faq">❓ FAQ & Support</h2>
+        <div class="callout">
+            <div class="callout-title">How do I change the app logo and branding?</div>
+            Replace the image assets located in <code>safevoice-app/assets/images/</code> (icon.png, splash.png) and update the app name in <code>safevoice-app/app.json</code>.
+        </div>
+    </div>
+
+</body>
+</html>
